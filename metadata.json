@@ -1,5 +1,5 @@
 {
-  "name": "Atlas: AI Trip Planner",
-  "description": "An AI-powered logistics coordinator that creates personalized trip itineraries. Users provide their destination, dates, group vibe, and preferences, and Atlas generates a detailed, day-by-day plan with real-world recommendations for hotels, activities, and restaurants.",
+  "name": "Ryoko AI - Trip Planner",
+  "description": "An AI-powered logistics coordinator that creates personalized trip itineraries. Users provide their destination, dates, group vibe, and preferences, and Ryoko AI generates a detailed, day-by-day plan with real-world recommendations for hotels, activities, and restaurants.",
   "requestFramePermissions": []
 }

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
@@ -9,23 +10,28 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onLogout, showAuthButtons = false }) => {
   const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     onLogout?.();
+    navigate('/');
   };
 
   return (
     <header className="bg-slate-800 text-white">
       <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-        <div className="text-center flex-1">
+        <button 
+          onClick={() => navigate('/')}
+          className="text-center flex-1 hover:opacity-80 transition-opacity"
+        >
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-            Atlas <span className="text-cyan-400">AI</span>
+            Ryoko <span className="text-cyan-400">AI</span>
           </h1>
           <p className="mt-1 text-sm md:text-base text-slate-300">
             Your Personal Trip Logistics Coordinator
           </p>
-        </div>
+        </button>
         {showAuthButtons && currentUser && (
           <div className="flex items-center gap-4">
             <span className="text-slate-300 text-sm">{currentUser.email}</span>

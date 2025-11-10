@@ -180,7 +180,7 @@ const JoinPlan: React.FC<JoinPlanProps> = ({ inviteCode, planId, onJoinSuccess, 
   // Loading state
   if (loading && !plan) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <LoadingSpinner />
       </div>
     );
@@ -189,42 +189,50 @@ const JoinPlan: React.FC<JoinPlanProps> = ({ inviteCode, planId, onJoinSuccess, 
   // Step 1: Enter Invite Code
   if (step === 'code') {
     return (
-      <div className="bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl max-w-md mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-slate-100">Join Trip Plan</h2>
-        <p className="text-slate-400 mb-6">
-          Enter the invite code shared by the plan creator
-        </p>
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-8 md:p-10">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                Join Trip Plan
+              </h2>
+              <p className="text-gray-600">
+                Enter the invite code shared by the plan creator
+              </p>
+            </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-800/50 border border-red-600 text-red-200 rounded-lg text-sm">
-            {error}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleCodeSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Invite Code
+                </label>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  required
+                  maxLength={8}
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-center text-2xl font-mono tracking-widest"
+                  placeholder="ABC123"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !code}
+                className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+              >
+                {loading ? 'Loading...' : 'Continue'}
+              </button>
+            </form>
           </div>
-        )}
-
-        <form onSubmit={handleCodeSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
-              Invite Code
-            </label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              required
-              maxLength={8}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-center text-2xl font-mono tracking-widest"
-              placeholder="ABC123"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || !code}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
-          >
-            {loading ? 'Loading...' : 'Continue'}
-          </button>
-        </form>
+        </div>
       </div>
     );
   }
@@ -232,56 +240,62 @@ const JoinPlan: React.FC<JoinPlanProps> = ({ inviteCode, planId, onJoinSuccess, 
   // Step 2: Member List (if members exist)
   if (step === 'member-list') {
     return (
-      <div className="bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl max-w-md mx-auto">
-        <h2 className="text-2xl font-bold mb-2 text-slate-100">
-          Welcome to {plan?.destination || 'Trip Plan'}
-        </h2>
-        <p className="text-slate-400 mb-6">
-          Select your name if you've joined before, or join as a new member
-        </p>
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-8 md:p-10">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                Welcome to {plan?.destination || 'Trip Plan'}
+              </h2>
+              <p className="text-gray-600">
+                Select your name if you've joined before, or join as a new member
+              </p>
+            </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-800/50 border border-red-600 text-red-200 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
-        {members.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-slate-200 mb-4">Returning Members</h3>
-            <div className="space-y-2">
-              {members.map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => handleMemberSelect(member)}
-                  className="w-full text-left p-4 rounded-lg border-2 border-slate-600 bg-slate-700 hover:border-slate-500 transition-colors"
-                >
-                  <div className="font-semibold text-white">{member.name}</div>
-                  <div className="text-sm text-slate-400">
-                    Joined {new Date(member.joinedAt).toLocaleDateString()}
-                  </div>
-                </button>
-              ))}
+            {members.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Returning Members</h3>
+                <div className="space-y-3">
+                  {members.map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => handleMemberSelect(member)}
+                      className="w-full text-left p-4 rounded-lg border-2 border-gray-200 bg-gray-50 hover:border-blue-300 hover:bg-blue-50 transition-all"
+                    >
+                      <div className="font-semibold text-gray-900">{member.name}</div>
+                      <div className="text-sm text-gray-500">
+                        Joined {new Date(member.joinedAt).toLocaleDateString()}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={() => setStep('code')}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep('form')}
+                className="flex-1 bg-black hover:bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                Join as New Member
+              </button>
             </div>
           </div>
-        )}
-
-        <div className="flex gap-4 pt-4">
-          <button
-            type="button"
-            onClick={() => setStep('code')}
-            className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-          >
-            Back
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep('form')}
-            className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-          >
-            Join as New Member
-          </button>
         </div>
       </div>
     );
@@ -290,241 +304,253 @@ const JoinPlan: React.FC<JoinPlanProps> = ({ inviteCode, planId, onJoinSuccess, 
   // Step 3: Passcode Entry (for returning members)
   if (step === 'passcode') {
     return (
-      <div className="bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl max-w-md mx-auto">
-        <h2 className="text-2xl font-bold mb-2 text-slate-100">
-          Welcome back, {selectedMember?.name}!
-        </h2>
-        <p className="text-slate-400 mb-6">
-          Enter your passcode to access the plan
-        </p>
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-8 md:p-10">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+                Welcome back, {selectedMember?.name}!
+              </h2>
+              <p className="text-gray-600">
+                Enter your passcode to access the plan
+              </p>
+            </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-800/50 border border-red-600 text-red-200 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
-        <form onSubmit={handlePasscodeAuth} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
-              Passcode
-            </label>
-            <input
-              type="password"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              required
-              maxLength={6}
-              autoFocus
-              className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-center text-2xl font-mono tracking-widest"
-              placeholder="••••"
-            />
-          </div>
+            <form onSubmit={handlePasscodeAuth} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Passcode
+                </label>
+                <input
+                  type="password"
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
+                  required
+                  maxLength={6}
+                  autoFocus
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-center text-2xl font-mono tracking-widest"
+                  placeholder="••••"
+                />
+              </div>
 
-          <div className="flex gap-4 pt-4">
-            <button
-              type="button"
-              onClick={() => {
-                setStep('member-list');
-                setPasscode('');
-                setSelectedMember(null);
-                setError(null);
-              }}
-              className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-            >
-              Back
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !passcode}
-              className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
-            >
-              {loading ? 'Authenticating...' : 'Access Plan'}
-            </button>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('member-list');
+                    setPasscode('');
+                    setSelectedMember(null);
+                    setError(null);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !passcode}
+                  className="flex-1 bg-black hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  {loading ? 'Authenticating...' : 'Access Plan'}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     );
   }
 
   // Step 4: Join Form (for new members)
   return (
-    <div className="bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-2 text-slate-100">
-        Join {plan?.destination || 'Trip Plan'}
-      </h2>
-      <p className="text-slate-400 mb-6">
-        Enter your details to join this trip plan
-      </p>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-800/50 border border-red-600 text-red-200 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleJoinSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Your Name <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            placeholder="John Doe"
-          />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
-              Set Passcode (4-6 digits) <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="password"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              required
-              maxLength={6}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              placeholder="1234"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              You'll use this to access the plan later
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      <div className="w-full max-w-2xl">
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-8 md:p-10">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+              Join {plan?.destination || 'Trip Plan'}
+            </h2>
+            <p className="text-gray-600">
+              Enter your details to join this trip plan
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
-              Confirm Passcode <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="password"
-              value={confirmPasscode}
-              onChange={(e) => setConfirmPasscode(e.target.value)}
-              required
-              maxLength={6}
-              className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              placeholder="1234"
-            />
-          </div>
-        </div>
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Budget Range (optional)
-          </label>
-          <input
-            type="text"
-            value={preferences.budget || ''}
-            onChange={(e) => setPreferences({ ...preferences, budget: e.target.value })}
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            placeholder="e.g., $100-200 per day"
-          />
-        </div>
+          <form onSubmit={handleJoinSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Your Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="John Doe"
+              />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Interests (optional)
-          </label>
-          <input
-            type="text"
-            value={preferences.interests?.join(', ') || ''}
-            onChange={(e) =>
-              setPreferences({
-                ...preferences,
-                interests: e.target.value.split(',').map((i) => i.trim()).filter(Boolean),
-              })
-            }
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            placeholder="e.g., food, culture, adventure"
-          />
-        </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Set Passcode (4-6 digits) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
+                  required
+                  maxLength={6}
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="1234"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  You'll use this to access the plan later
+                </p>
+              </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Dietary Restrictions (optional)
-          </label>
-          <input
-            type="text"
-            value={preferences.dietary?.join(', ') || ''}
-            onChange={(e) =>
-              setPreferences({
-                ...preferences,
-                dietary: e.target.value.split(',').map((d) => d.trim()).filter(Boolean),
-              })
-            }
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            placeholder="e.g., vegetarian, no seafood"
-          />
-        </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Confirm Passcode <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={confirmPasscode}
+                  onChange={(e) => setConfirmPasscode(e.target.value)}
+                  required
+                  maxLength={6}
+                  className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="1234"
+                />
+              </div>
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Must-Do Items (optional)
-          </label>
-          <textarea
-            value={preferences.mustDo?.join(', ') || ''}
-            onChange={(e) =>
-              setPreferences({
-                ...preferences,
-                mustDo: e.target.value.split(',').map((m) => m.trim()).filter(Boolean),
-              })
-            }
-            rows={2}
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            placeholder="e.g., Visit Eiffel Tower, try local cuisine"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Budget Range (optional)
+              </label>
+              <input
+                type="text"
+                value={preferences.budget || ''}
+                onChange={(e) => setPreferences({ ...preferences, budget: e.target.value })}
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="e.g., $100-200 per day"
+              />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Veto Items (optional)
-          </label>
-          <textarea
-            value={preferences.veto?.join(', ') || ''}
-            onChange={(e) =>
-              setPreferences({
-                ...preferences,
-                veto: e.target.value.split(',').map((v) => v.trim()).filter(Boolean),
-              })
-            }
-            rows={2}
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            placeholder="e.g., No museums, no early mornings"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Interests (optional)
+              </label>
+              <input
+                type="text"
+                value={preferences.interests?.join(', ') || ''}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    interests: e.target.value.split(',').map((i) => i.trim()).filter(Boolean),
+                  })
+                }
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="e.g., food, culture, adventure"
+              />
+            </div>
 
-        <div className="flex gap-4 pt-4">
-          <button
-            type="button"
-            onClick={() => {
-              if (members.length > 0) {
-                setStep('member-list');
-              } else {
-                setStep('code');
-              }
-              setName('');
-              setPasscode('');
-              setConfirmPasscode('');
-              setError(null);
-            }}
-            className="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-          >
-            Back
-          </button>
-          <button
-            type="submit"
-            disabled={loading || !name || !passcode}
-            className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors"
-          >
-            {loading ? 'Joining...' : 'Join Plan'}
-          </button>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Dietary Restrictions (optional)
+              </label>
+              <input
+                type="text"
+                value={preferences.dietary?.join(', ') || ''}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    dietary: e.target.value.split(',').map((d) => d.trim()).filter(Boolean),
+                  })
+                }
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="e.g., vegetarian, no seafood"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Must-Do Items (optional)
+              </label>
+              <textarea
+                value={preferences.mustDo?.join(', ') || ''}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    mustDo: e.target.value.split(',').map((m) => m.trim()).filter(Boolean),
+                  })
+                }
+                rows={2}
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                placeholder="e.g., Visit Eiffel Tower, try local cuisine"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Veto Items (optional)
+              </label>
+              <textarea
+                value={preferences.veto?.join(', ') || ''}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    veto: e.target.value.split(',').map((v) => v.trim()).filter(Boolean),
+                  })
+                }
+                rows={2}
+                className="w-full bg-gray-50 border-2 border-gray-200 rounded-lg py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                placeholder="e.g., No museums, no early mornings"
+              />
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  if (members.length > 0) {
+                    setStep('member-list');
+                  } else {
+                    setStep('code');
+                  }
+                  setName('');
+                  setPasscode('');
+                  setConfirmPasscode('');
+                  setError(null);
+                }}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              >
+                Back
+              </button>
+              <button
+                type="submit"
+                disabled={loading || !name || !passcode}
+                className="flex-1 bg-black hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                {loading ? 'Joining...' : 'Join Plan'}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

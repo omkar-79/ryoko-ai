@@ -2,7 +2,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { GroundingChunk } from '../types';
 
-const getAtlasPrompt = (
+const getRyokoPrompt = (
     destination: string,
     tripDates: string,
     groupVibe: string,
@@ -10,7 +10,7 @@ const getAtlasPrompt = (
     vetoList: string
 ) => {
     return `
-You are 'Atlas', an elite AI logistics coordinator. Your job is to create a trip itinerary.
+You are 'Ryoko', an elite AI logistics coordinator. Your job is to create a trip itinerary.
 Your entire response MUST be a single, valid JSON object. Do not include any text, markdown formatting, or explanations outside of the JSON structure.
 Here are the trip details:
 Destination: ${destination}
@@ -19,12 +19,25 @@ Group Vibe: ${groupVibe}
 Must-Do List: ${mustDoList}
 Veto List: ${vetoList}
 CRITICAL DATA SOURCING & JSON STRUCTURE:
-Use Both Tools Strategically: 
-- Use Google Search to discover and find the best places (hotels, activities, restaurants, hidden gems) based on the destination and requirements.
-- Use Google Maps Grounding to get detailed place information, exact locations, and Google Maps URIs for the places you've identified.
-- Use the tools efficiently: Search for places, then use Maps for key places to get their URIs. You don't need to use Maps for every single place - focus on the most important ones.
+Tool Usage Strategy:
+STEP 1 - Discovery (Google Search Grounding):
+- Use Google Search Grounding FIRST to discover and find the best places (hotels, activities, restaurants, hidden gems) based on the destination, group vibe, must-do list, and requirements.
+- Google Search will help you find places that match user preferences, budget, interests, and dietary restrictions.
+- Use Google Search to research what places are recommended, popular, or match the group's vibe.
+
+STEP 2 - Location Details (Google Maps Grounding):
+- AFTER finding places with Google Search, use Google Maps Grounding to get detailed place information, exact locations, addresses, and most importantly: Google Maps URIs.
+- Google Maps Grounding provides the official Google Maps URI for each place in the grounding metadata.
+- Use Google Maps Grounding for hotels, key activities, restaurants, and hidden gems to get their exact URIs.
+
+CRITICAL URI REQUIREMENTS:
+- You MUST extract Google Maps URIs from the grounding metadata returned by Google Maps Grounding tool calls.
+- DO NOT generate, create, or make up Google Maps URLs. ONLY use URIs that come from the grounding metadata.
+- When Google Maps Grounding returns a place, it includes a URI in the grounding metadata. Copy that EXACT URI into the "googleMapsLink" field.
+- If you did not use Google Maps Grounding for a place, or if no URI is available in the grounding metadata, set "googleMapsLink" to null.
+- NEVER construct URLs like "https://maps.google.com/?q=..." manually. Only use URIs from grounding metadata.
+
 Use Exact Official Names: You MUST use the exact, unmodified, official name from the tools as the value for the "name" or "activity" fields in your JSON. This is critical for accurate location data.
-Google Maps Links: When you use Google Maps Grounding to get information about a place, you will receive a Google Maps URI in the grounding metadata. You MUST include this exact URI in the "googleMapsLink" field for that place in your JSON response. For places where you don't use Google Maps Grounding or don't have a URI, set "googleMapsLink" to null. This is critical - always include the Google Maps URI from the grounding metadata when available.
 For Neighborhoods: When you mention a neighborhood or area in the "location" field (e.g., "Shibuya", "Shinjuku"), you can also use Google Maps Grounding to get a Google Maps URI for that neighborhood. If you get a URI for the neighborhood, you can include it in a "locationUri" field (optional). However, if you don't have a neighborhood URI, that's fine - the system can generate one.
 No Generic Places: Generic descriptions like "a cool bakery" are forbidden. You must always use the tools to find and name a specific place like "Gontran Cherrier Shinjuku".
 IMPORTANT: Generate the complete JSON response in a single turn. Do not make excessive tool calls. Use tools efficiently to gather information, then provide the complete itinerary with Google Maps URIs included directly in the JSON.
@@ -138,7 +151,7 @@ export const generateItinerary = async (
     }
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-    const prompt = getAtlasPrompt(destination, tripDates, groupVibe, mustDoList, vetoList);
+    const prompt = getRyokoPrompt(destination, tripDates, groupVibe, mustDoList, vetoList);
 
     console.log('Starting API call...');
     
@@ -153,15 +166,15 @@ export const generateItinerary = async (
         // Wrap API call in retry logic
         const response = await retryWithBackoff(async () => {
             const apiCall = ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: prompt,
-                config: {
+        model: "gemini-2.5-pro",
+        contents: prompt,
+        config: {
                     tools: [
                         { googleSearch: {} },
                         { googleMaps: {} }
                     ],
-                },
-            });
+        },
+    });
 
             return await Promise.race([apiCall, timeoutPromise]);
         });
@@ -195,10 +208,23 @@ export const generateItinerary = async (
         }
 
         console.log('Successfully extracted itinerary JSON');
-        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] || [];
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] || [];
         console.log(`Found ${sources.length} sources`);
+        
+        // Verify grounding sources
+        const mapsSources = sources.filter(s => s.maps?.uri);
+        const webSources = sources.filter(s => s.web?.uri);
+        console.log(`Grounding verification: ${mapsSources.length} Google Maps sources, ${webSources.length} Google Search sources`);
+        
+        // Log sample URIs from grounding to verify they're being used
+        if (mapsSources.length > 0) {
+            console.log('Sample Google Maps URIs from grounding:', mapsSources.slice(0, 3).map(s => ({
+                title: s.maps?.title,
+                uri: s.maps?.uri
+            })));
+        }
 
-        return { itineraryJson, sources };
+    return { itineraryJson, sources };
     } catch (error: any) {
         console.error('Error in generateItinerary:', error);
         
