@@ -157,22 +157,45 @@ export function matchSourcesToItinerary(
             const locationUri = findNeighborhoodUri(item.location, sources);
             
             let hiddenGem = item.hiddenGem;
-            if (hiddenGem && !hiddenGem.googleMapsLink) {
-                const hiddenGemUri = findMatchingUri(hiddenGem.name, sources);
-                const hiddenGemLocationUri = findNeighborhoodUri(hiddenGem.location, sources);
-                hiddenGem = {
+            if (hiddenGem) {
+                const hiddenGemObj: any = {
                     ...hiddenGem,
-                    googleMapsLink: hiddenGemUri,
-                    locationUri: hiddenGemLocationUri
+                    googleMapsLink: hiddenGem.googleMapsLink || null,
                 };
+                
+                // Only include locationUri if it exists
+                if (hiddenGem.locationUri) {
+                    hiddenGemObj.locationUri = hiddenGem.locationUri;
+                } else if (!hiddenGem.googleMapsLink) {
+                    // Try to find URI if not already set
+                    const hiddenGemUri = findMatchingUri(hiddenGem.name, sources);
+                    const hiddenGemLocationUri = findNeighborhoodUri(hiddenGem.location, sources);
+                    hiddenGemObj.googleMapsLink = hiddenGemUri || null;
+                    if (hiddenGemLocationUri) {
+                        hiddenGemObj.locationUri = hiddenGemLocationUri;
+                    }
+                }
+                
+                hiddenGem = hiddenGemObj;
             }
             
-            return {
+            // Build the return object, only including optional fields if they have values
+            const returnItem: any = {
                 ...item,
-                googleMapsLink: activityUri,
-                locationUri: locationUri,
-                hiddenGem
+                googleMapsLink: activityUri || null,
             };
+            
+            // Only include locationUri if it exists
+            if (locationUri) {
+                returnItem.locationUri = locationUri;
+            }
+            
+            // Only include hiddenGem if it exists
+            if (hiddenGem) {
+                returnItem.hiddenGem = hiddenGem;
+            }
+            
+            return returnItem;
         })
     }));
     

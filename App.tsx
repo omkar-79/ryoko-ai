@@ -1,144 +1,257 @@
-
-import React, { useState } from 'react';
-import { generateItinerary } from './services/geminiService';
-import { Itinerary, GroundingChunk } from './types';
-import { matchSourcesToItinerary } from './utils/matchSources';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from './contexts/AuthContext';
 import Header from './components/Header';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import CreatePlan from './components/plan/CreatePlan';
+import PlanDashboard from './components/plan/PlanDashboard';
+import JoinPlan from './components/plan/JoinPlan';
+import PlansList from './components/plan/PlansList';
 import LoadingSpinner from './components/LoadingSpinner';
-import ItineraryDisplay from './components/ItineraryDisplay';
 
-const InputField: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder: string; }> = ({ label, value, onChange, placeholder }) => (
-    <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">{label}</label>
-        <input
-            type="text"
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-        />
-    </div>
-);
-
-const TextAreaField: React.FC<{ label: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder: string; rows: number }> = ({ label, value, onChange, placeholder, rows }) => (
-    <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">{label}</label>
-        <textarea
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-            rows={rows}
-            className="w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-        />
-    </div>
-);
-
+type View =
+  | 'auth'
+  | 'login'
+  | 'register'
+  | 'plans-list'
+  | 'create-plan'
+  | 'plan-dashboard'
+  | 'join-plan'
+  | 'member-view';
 
 const App: React.FC = () => {
-    const [destination, setDestination] = useState('Tokyo, Japan');
-    const [tripDates, setTripDates] = useState('Next spring for 1 week');
-    const [groupVibe, setGroupVibe] = useState('Tech-savvy friends who love food, anime, and exploring unique neighborhoods. We\'re on a moderate budget.');
-    const [mustDoList, setMustDoList] = useState('Visit the Ghibli Museum, eat at a themed cafe, explore Akihabara, find great ramen.');
-    const [vetoList, setVetoList] = useState('No expensive fine dining, no super early mornings before 10 AM.');
+  const { currentUser, loading: authLoading } = useAuth();
+  const [view, setView] = useState<View>('auth');
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  const [currentMemberId, setCurrentMemberId] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
 
-    const [itinerary, setItinerary] = useState<Itinerary | null>(null);
-    const [sources, setSources] = useState<GroundingChunk[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  // Check URL for magic link or invite code
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const planId = urlParams.get('planId') || window.location.pathname.split('/join/')[1]?.split('?')[0];
+    const code = urlParams.get('code');
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-        setItinerary(null);
-        setSources([]);
+    if (planId) {
+      setCurrentPlanId(planId);
+      setView('join-plan');
+    } else if (code) {
+      setInviteCode(code);
+      setView('join-plan');
+    }
+  }, []);
 
-        try {
-            const result = await generateItinerary(destination, tripDates, groupVibe, mustDoList, vetoList);
-            
-            // Validate that we have itinerary JSON
-            if (!result.itineraryJson) {
-                throw new Error('No itinerary data received from the API');
-            }
-            
-            // Clean the response from markdown and parse
-            const cleanedJsonString = result.itineraryJson.replace(/```json|```/g, '').trim();
-            
-            if (!cleanedJsonString) {
-                throw new Error('Empty response after cleaning. The model may not have returned valid JSON.');
-            }
-            
-            const parsedItinerary: Itinerary = JSON.parse(cleanedJsonString);
-            
-            // The model should now include Google Maps URIs directly in the JSON response.
-            // Use matching as a fallback only for places that don't have URIs.
-            const matchedItinerary = matchSourcesToItinerary(parsedItinerary, result.sources);
-            console.log('Processed itinerary with Google Maps links');
+  // Determine initial view based on auth state
+  useEffect(() => {
+    if (authLoading) return;
 
-            setItinerary(matchedItinerary);
-            setSources(result.sources);
-        } catch (err) {
-            console.error('Error generating itinerary:', err);
-            setError(err instanceof Error ? `Failed to generate itinerary: ${err.message}` : "An unknown error occurred.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const isFormIncomplete = !destination || !tripDates || !groupVibe;
+    if (currentUser) {
+      // User is logged in - show plans list or dashboard
+      if (currentPlanId) {
+        setView('plan-dashboard');
+      } else {
+        setView('plans-list');
+      }
+    } else {
+      // Not logged in - check if joining a plan
+      if (currentPlanId || inviteCode) {
+        setView('join-plan');
+      } else {
+        setView('auth');
+      }
+    }
+  }, [currentUser, authLoading, currentPlanId, inviteCode]);
+
+  const handleAuthSuccess = () => {
+    setView('plans-list');
+  };
+
+  const handlePlanCreated = (planId: string) => {
+    setCurrentPlanId(planId);
+    setView('plan-dashboard');
+  };
+
+  const handleJoinSuccess = (planId: string, memberId: string) => {
+    setCurrentPlanId(planId);
+    setCurrentMemberId(memberId);
+    setView('member-view');
+  };
+
+  const handleMemberAuthSuccess = (planId: string, member: any) => {
+    setCurrentPlanId(planId);
+    setCurrentMemberId(member.id);
+    setView('member-view');
+  };
+
+  const handleLogout = () => {
+    setCurrentPlanId(null);
+    setCurrentMemberId(null);
+    setView('auth');
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
     return (
         <div className="min-h-screen bg-slate-900 text-white font-sans">
-            <Header />
+      <Header
+        showAuthButtons={currentUser !== null}
+        onLogout={handleLogout}
+      />
             <main className="p-4 md:p-8">
-                <div className="max-w-4xl mx-auto">
-                    {!itinerary && (
-                         <div className="bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl">
-                            <h2 className="text-2xl font-bold mb-6 text-slate-100">Plan Your Next Adventure</h2>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <InputField label="Destination" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="e.g., Paris, France" />
-                                    <InputField label="Trip Dates" value={tripDates} onChange={(e) => setTripDates(e.target.value)} placeholder="e.g., July 10-17" />
+        <div className="max-w-6xl mx-auto">
+          {/* Auth Views */}
+          {view === 'auth' && (
+            <div className="flex flex-col items-center gap-4">
+              <h2 className="text-2xl font-bold text-slate-100 mb-4">
+                Welcome to Atlas AI Trip Planner
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl">
+                <div className="bg-slate-800 p-6 rounded-xl">
+                  <h3 className="text-xl font-bold text-slate-100 mb-2">Create a Plan</h3>
+                  <p className="text-slate-400 mb-4">
+                    Register or login to create and manage group trip plans
+                  </p>
+                  <button
+                    onClick={() => setView('login')}
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition-colors mb-2"
+                  >
+                    Login / Register
+                  </button>
                                 </div>
-                                <TextAreaField label="Group Vibe" value={groupVibe} onChange={(e) => setGroupVibe(e.target.value)} placeholder="e.g., Relaxed, foodie, adventure-seekers" rows={3} />
-                                <TextAreaField label="Must-Do List" value={mustDoList} onChange={(e) => setMustDoList(e.target.value)} placeholder="e.g., See the Eiffel Tower, eat croissants" rows={2} />
-                                <TextAreaField label="Veto List (Things to avoid)" value={vetoList} onChange={(e) => setVetoList(e.target.value)} placeholder="e.g., No museums, no seafood" rows={2} />
-                                <div className="pt-4">
-                                    <button type="submit" disabled={isLoading || isFormIncomplete} className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg shadow-lg">
-                                        {isLoading ? 'Generating...' : 'Create My Itinerary'}
+                <div className="bg-slate-800 p-6 rounded-xl">
+                  <h3 className="text-xl font-bold text-slate-100 mb-2">Join a Plan</h3>
+                  <p className="text-slate-400 mb-4">
+                    Enter an invite code to join an existing trip plan
+                  </p>
+                  <button
+                    onClick={() => setView('join-plan')}
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  >
+                    Join Plan
                                     </button>
                                 </div>
-                            </form>
+              </div>
                         </div>
                     )}
 
-                    {isLoading && (
-                        <div className="mt-8">
-                            <LoadingSpinner />
-                            <p className="text-center text-slate-400 mt-4">
-                                Generating your itinerary... This may take 30-60 seconds as we search for the best places and gather location details.
-                            </p>
-                        </div>
-                    )}
+          {view === 'login' && (
+            <Login
+              onSwitchToRegister={() => setView('register')}
+              onSuccess={handleAuthSuccess}
+            />
+          )}
 
-                    {error && (
-                        <div className="mt-8 p-4 bg-red-800/50 border border-red-600 text-red-200 rounded-lg">
-                            <p className="font-bold">An Error Occurred</p>
-                            <p>{error}</p>
-                        </div>
-                    )}
+          {view === 'register' && (
+            <Register
+              onSwitchToLogin={() => setView('login')}
+              onSuccess={handleAuthSuccess}
+            />
+          )}
 
-                    {itinerary && (
+          {/* Plan Creator Views */}
+          {view === 'plans-list' && currentUser && (
+            <div>
+              <PlansList
+                creatorId={currentUser.uid}
+                onSelectPlan={handlePlanCreated}
+                onCreateNew={() => setView('create-plan')}
+              />
+            </div>
+          )}
+
+          {view === 'create-plan' && currentUser && (
+            <div>
+              <div className="mb-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-slate-100">Create New Plan</h2>
+                <button
+                  onClick={() => setView('plans-list')}
+                  className="text-cyan-400 hover:text-cyan-300 text-sm"
+                >
+                  Back to Plans
+                </button>
+              </div>
+              <CreatePlan onPlanCreated={handlePlanCreated} />
+            </div>
+          )}
+
+          {view === 'plan-dashboard' && currentPlanId && currentUser && (
                         <div>
-                            <ItineraryDisplay itinerary={itinerary} sources={sources} />
-                             <div className="text-center mt-8">
-                                <button
-                                    onClick={() => setItinerary(null)}
-                                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg"
-                                >
-                                    Start a New Plan
-                                </button>
-                            </div>
+              <div className="mb-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-slate-100">Plan Dashboard</h2>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => {
+                      setCurrentPlanId(null);
+                      setView('plans-list');
+                    }}
+                    className="text-cyan-400 hover:text-cyan-300 text-sm"
+                  >
+                    My Plans
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCurrentPlanId(null);
+                      setView('create-plan');
+                    }}
+                    className="text-cyan-400 hover:text-cyan-300 text-sm"
+                  >
+                    Create New Plan
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="text-slate-400 hover:text-slate-300 text-sm"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+              <PlanDashboard planId={currentPlanId} isCreator={true} />
+            </div>
+          )}
+
+          {/* Member Views */}
+          {view === 'join-plan' && (
+            <div>
+              <div className="mb-6">
+                <button
+                  onClick={() => setView('auth')}
+                  className="text-cyan-400 hover:text-cyan-300 text-sm mb-4"
+                >
+                  ← Back to Home
+                </button>
+              </div>
+              <JoinPlan
+                inviteCode={inviteCode || undefined}
+                planId={currentPlanId || undefined}
+                onJoinSuccess={handleJoinSuccess}
+                onAuthSuccess={handleMemberAuthSuccess}
+              />
+            </div>
+          )}
+
+
+          {view === 'member-view' && currentPlanId && (
+            <div>
+              <div className="mb-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-slate-100">Trip Plan</h2>
+                <button
+                  onClick={() => {
+                    setCurrentPlanId(null);
+                    setCurrentMemberId(null);
+                    setView('auth');
+                  }}
+                  className="text-cyan-400 hover:text-cyan-300 text-sm"
+                >
+                  Leave Plan
+                </button>
+              </div>
+              <PlanDashboard planId={currentPlanId} isCreator={false} />
                         </div>
                     )}
                 </div>

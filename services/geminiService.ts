@@ -83,6 +83,49 @@ CRITICAL LOGIC:
 `;
 };
 
+// Retry function with exponential backoff
+const retryWithBackoff = async <T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+): Promise<T> => {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            lastError = error;
+            
+            // Check if it's a retryable error (503, 429, or network errors)
+            // Handle both direct error objects and nested error structures
+            const errorCode = error?.code || error?.error?.code;
+            const errorStatus = error?.status || error?.error?.status;
+            const errorMessage = error?.message || error?.error?.message || JSON.stringify(error);
+            
+            const isRetryable = 
+                errorCode === 503 || 
+                errorStatus === 'UNAVAILABLE' ||
+                errorCode === 429 ||
+                errorMessage?.includes('503') ||
+                errorMessage?.includes('UNAVAILABLE') ||
+                errorMessage?.includes('network') ||
+                errorMessage?.includes('ECONNRESET');
+            
+            if (!isRetryable || attempt === maxRetries - 1) {
+                throw error;
+            }
+            
+            // Calculate delay with exponential backoff
+            const delay = baseDelay * Math.pow(2, attempt);
+            console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    
+    throw lastError;
+};
+
 export const generateItinerary = async (
     destination: string,
     tripDates: string,
@@ -107,18 +150,22 @@ export const generateItinerary = async (
     });
 
     try {
-        const apiCall = ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                tools: [
-                    { googleSearch: {} },
-                    { googleMaps: {} }
-                ],
-            },
-        });
+        // Wrap API call in retry logic
+        const response = await retryWithBackoff(async () => {
+            const apiCall = ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    tools: [
+                        { googleSearch: {} },
+                        { googleMaps: {} }
+                    ],
+                },
+            });
 
-        const response = await Promise.race([apiCall, timeoutPromise]);
+            return await Promise.race([apiCall, timeoutPromise]);
+        });
+        
         console.log('API call completed, processing response...');
 
         // Extract text content - try response.text first, then fallback to candidates
@@ -152,8 +199,33 @@ export const generateItinerary = async (
         console.log(`Found ${sources.length} sources`);
 
         return { itineraryJson, sources };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in generateItinerary:', error);
-        throw error;
+        
+        // Extract error details (handle both direct and nested error structures)
+        const errorCode = error?.code || error?.error?.code;
+        const errorStatus = error?.status || error?.error?.status;
+        const errorMessage = error?.message || error?.error?.message || JSON.stringify(error);
+        
+        // Provide user-friendly error messages
+        if (errorCode === 503 || errorStatus === 'UNAVAILABLE' || errorMessage?.includes('503') || errorMessage?.includes('UNAVAILABLE')) {
+            throw new Error('The API service is temporarily unavailable. This is usually a temporary issue. Please try again in a few moments. If the problem persists, check your API key permissions in Google Cloud Console.');
+        }
+        
+        if (errorCode === 429 || errorMessage?.includes('429')) {
+            throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        }
+        
+        if (errorMessage?.includes('API_KEY') || errorMessage?.includes('api key')) {
+            throw new Error('API key is missing or invalid. Please check your environment variables.');
+        }
+        
+        if (errorMessage?.includes('timeout')) {
+            throw new Error('The request took too long. This might be due to high API load. Please try again.');
+        }
+        
+        // Re-throw with original message if we can't categorize it
+        const finalMessage = errorMessage || 'Failed to generate itinerary. Please try again.';
+        throw new Error(finalMessage);
     }
 };
