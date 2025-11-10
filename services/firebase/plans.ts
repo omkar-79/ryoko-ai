@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { Plan, CreatePlanData } from '../../types/plan';
-import { generateInviteCode, generateMagicLink } from '../../utils/inviteCode';
+import { generateInviteCode } from '../../utils/inviteCode';
 import { removeUndefined } from '../../utils/firebase';
 import { aggregateGroupVibe, aggregateMustDo, aggregateVeto } from '../../utils/aggregatePreferences';
 
@@ -75,13 +75,11 @@ export async function createPlan(
 
   const planRef = doc(collection(db, 'plans'));
   const planId = planRef.id;
-  const inviteLink = generateMagicLink(planId);
 
   const newPlan: Omit<Plan, 'id'> = {
     creatorId,
     ...planData,
     inviteCode,
-    inviteLink,
     status: 'draft',
     itinerary: null,
     sources: [],

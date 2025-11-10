@@ -9,7 +9,6 @@ export interface Plan {
   mustDoList: string;
   vetoList: string;
   inviteCode: string; // Unique 6-8 digit code
-  inviteLink: string; // Magic link URL
   status: 'draft' | 'active' | 'completed';
   itinerary: Itinerary | null;
   sources: GroundingChunk[];

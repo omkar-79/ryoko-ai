@@ -98,7 +98,7 @@ const App: React.FC = () => {
   }
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white font-sans">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-800 font-sans">
       <Header
         showAuthButtons={currentUser !== null}
         onLogout={handleLogout}

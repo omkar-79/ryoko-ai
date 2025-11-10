@@ -31,7 +31,7 @@ service cloud.firestore {
       // 1. Not changing any critical fields
       // 2. AND updating at least one of the preference fields (groupVibe, mustDoList, vetoList)
       // 3. updatedAt can also be updated (it's automatically set)
-      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['creatorId', 'destination', 'tripDates', 'inviteCode', 'inviteLink', 'status', 'itinerary', 'sources', 'memberIds', 'createdAt']) &&
+      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['creatorId', 'destination', 'tripDates', 'inviteCode', 'status', 'itinerary', 'sources', 'memberIds', 'createdAt']) &&
                        (request.resource.data.diff(resource.data).affectedKeys().hasAny(['groupVibe', 'mustDoList', 'vetoList']) ||
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']));
     }
