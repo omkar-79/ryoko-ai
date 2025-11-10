@@ -23,6 +23,17 @@ service cloud.firestore {
       // Allow read for members (we'll handle member auth separately via passcode)
       // For now, allow public read - members will authenticate via passcode in the app
       allow read: if true;
+      
+      // Allow members to update only aggregated preference fields (groupVibe, mustDoList, vetoList, updatedAt)
+      // This allows the aggregation to work when members join
+      // Members cannot change critical fields like creatorId, destination, etc.
+      // Allow update if:
+      // 1. Not changing any critical fields
+      // 2. AND updating at least one of the preference fields (groupVibe, mustDoList, vetoList)
+      // 3. updatedAt can also be updated (it's automatically set)
+      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['creatorId', 'destination', 'tripDates', 'inviteCode', 'inviteLink', 'status', 'itinerary', 'sources', 'memberIds', 'createdAt']) &&
+                       (request.resource.data.diff(resource.data).affectedKeys().hasAny(['groupVibe', 'mustDoList', 'vetoList']) ||
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']));
     }
     
     // Members collection

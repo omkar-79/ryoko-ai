@@ -9,11 +9,13 @@ import {
   updateDoc,
   serverTimestamp,
   Timestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from './config';
 import { Plan, CreatePlanData } from '../../types/plan';
 import { generateInviteCode, generateMagicLink } from '../../utils/inviteCode';
 import { removeUndefined } from '../../utils/firebase';
+import { aggregateGroupVibe, aggregateMustDo, aggregateVeto } from '../../utils/aggregatePreferences';
 
 /**
  * Safely converts a Firestore timestamp to a Date object
@@ -201,6 +203,58 @@ export async function saveItineraryToPlan(
     itinerary,
     sources,
     status: 'active',
+  });
+}
+
+/**
+ * Update plan with aggregated member preferences
+ */
+export async function updatePlanWithMemberPreferences(
+  planId: string,
+  memberPreferences: any[]
+): Promise<void> {
+  // Get current plan to preserve base values
+  const plan = await getPlan(planId);
+  if (!plan) {
+    throw new Error('Plan not found');
+  }
+
+  // Aggregate preferences
+  const aggregatedVibe = aggregateGroupVibe(memberPreferences, plan.groupVibe);
+  const aggregatedMustDo = aggregateMustDo(memberPreferences, plan.mustDoList);
+  const aggregatedVeto = aggregateVeto(memberPreferences, plan.vetoList);
+
+  // Update plan with aggregated values
+  await updatePlan(planId, {
+    groupVibe: aggregatedVibe,
+    mustDoList: aggregatedMustDo,
+    vetoList: aggregatedVeto,
+  });
+}
+
+/**
+ * Subscribe to plan updates (real-time)
+ */
+export function subscribeToPlan(
+  planId: string,
+  callback: (plan: Plan | null) => void
+): () => void {
+  const planRef = doc(db, 'plans', planId);
+
+  return onSnapshot(planRef, (planDoc) => {
+    if (!planDoc.exists()) {
+      callback(null);
+      return;
+    }
+
+    const data = planDoc.data();
+    const plan: Plan = {
+      id: planDoc.id,
+      ...data,
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+    } as Plan;
+    callback(plan);
   });
 }
 

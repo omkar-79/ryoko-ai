@@ -166,9 +166,13 @@ const JoinPlan: React.FC<JoinPlanProps> = ({ inviteCode, planId, onJoinSuccess, 
       };
 
       const memberId = await createMember(memberData);
+      
+      // Only redirect on success
+      setLoading(false);
       onJoinSuccess(plan.id, memberId);
     } catch (err: any) {
-      setError(err.message || 'Failed to join plan');
+      console.error('Error joining plan:', err);
+      setError(err.message || 'Failed to join plan. Please try again.');
       setLoading(false);
     }
   };

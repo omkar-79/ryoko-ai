@@ -144,44 +144,6 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ itinerary, sources 
         </div>
       </div>
 
-      <div className="bg-slate-800 p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-semibold text-cyan-400 mb-3">Data Sources</h2>
-        <p className="text-sm text-slate-400 mb-4">This itinerary was generated using Google Search to discover places and Google Maps for detailed location information and place URIs.</p>
-        
-        {sources.some(s => s.web?.uri) && (
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-slate-300 mb-2">Web Sources (Google Search)</h3>
-            <ul className="space-y-2">
-              {sources.filter(s => s.web?.uri).map((source, index) => (
-                <li key={`web-${index}`}>
-                  <a href={source.web!.uri} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-cyan-400 transition-colors break-all">
-                    {source.web!.title || source.web!.uri}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {sources.some(s => s.maps?.uri) && (
-          <div>
-            <h3 className="text-lg font-semibold text-slate-300 mb-2">Maps Sources (Google Maps)</h3>
-            <ul className="space-y-2">
-              {sources.filter(s => s.maps?.uri).map((source, index) => (
-                <li key={`maps-${index}`}>
-                  <a href={source.maps!.uri} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-cyan-400 transition-colors break-all">
-                    📍 {source.maps!.title || source.maps!.uri}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {!sources.some(s => s.web?.uri || s.maps?.uri) && (
-          <p className="text-slate-400 text-sm">No sources available.</p>
-        )}
-      </div>
     </div>
   );
 };

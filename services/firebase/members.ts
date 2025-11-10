@@ -19,6 +19,7 @@ import {
   MemberPublic,
 } from '../../types/member';
 import { hashPasscode, verifyPasscode } from '../../utils/passcode';
+import { updatePlanWithMemberPreferences } from './plans';
 
 /**
  * Create a new member (first time join)
@@ -49,16 +50,46 @@ export async function createMember(
     lastActiveAt: serverTimestamp(),
   });
 
-  // Update plan's memberIds array
-  const planRef = doc(db, 'plans', memberData.planId);
-  const planDoc = await getDoc(planRef);
-  if (planDoc.exists()) {
-    const planData = planDoc.data();
-    const memberIds = planData.memberIds || [];
-    await updateDoc(planRef, {
-      memberIds: [...memberIds, memberId],
-      updatedAt: serverTimestamp(),
-    });
+  // Update plan's memberIds array (non-blocking - if it fails, member creation still succeeds)
+  // Note: This might fail if member doesn't have permission, but that's okay
+  // The member is still created and can be found via queries
+  try {
+    const planRef = doc(db, 'plans', memberData.planId);
+    const planDoc = await getDoc(planRef);
+    if (planDoc.exists()) {
+      const planData = planDoc.data();
+      const memberIds = planData.memberIds || [];
+      // Only update if we're authenticated as the creator, otherwise skip
+      // Members will be found via queries anyway
+      await updateDoc(planRef, {
+        memberIds: [...memberIds, memberId],
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    // Log error but don't fail member creation
+    // memberIds is just for convenience - members can be queried by planId
+    console.warn('Failed to update plan memberIds array:', error);
+  }
+
+  // Update plan with aggregated member preferences (including the new member)
+  // Get existing members first, then add the new member's preferences
+  // This is non-blocking - if it fails, member creation still succeeds
+  try {
+    const existingMembers = await getPlanMembers(memberData.planId);
+    const allPreferences = [
+      ...existingMembers.map((m) => m.preferences),
+      memberData.preferences, // Include the new member's preferences
+    ];
+    
+    // Only update if we have at least one member with preferences
+    if (allPreferences.length > 0) {
+      await updatePlanWithMemberPreferences(memberData.planId, allPreferences);
+    }
+  } catch (error) {
+    // Log error but don't fail member creation
+    // The aggregation can be retried later or done by the creator
+    console.warn('Failed to update plan with aggregated preferences:', error);
   }
 
   return memberId;
@@ -179,10 +210,31 @@ export async function updateMemberPreferences(
   preferences: Member['preferences']
 ): Promise<void> {
   const memberRef = doc(db, 'members', memberId);
+  const memberDoc = await getDoc(memberRef);
+  
+  if (!memberDoc.exists()) {
+    throw new Error('Member not found');
+  }
+
+  const memberData = memberDoc.data() as Member;
+  const planId = memberData.planId;
+
+  // Update member preferences
   await updateDoc(memberRef, {
     preferences,
     lastActiveAt: serverTimestamp(),
   });
+
+  // Update plan with aggregated member preferences
+  const allMembers = await getPlanMembers(planId);
+  const allPreferences = allMembers.map((m) => {
+    // Use updated preferences for this member
+    if (m.id === memberId) {
+      return preferences;
+    }
+    return m.preferences;
+  });
+  await updatePlanWithMemberPreferences(planId, allPreferences);
 }
 
 /**

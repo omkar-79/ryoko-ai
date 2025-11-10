@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPlan } from '../../services/firebase/plans';
+import { getPlan, subscribeToPlan } from '../../services/firebase/plans';
 import { getPlanMembers, subscribeToPlanMembers } from '../../services/firebase/members';
 import { generateItinerary } from '../../services/geminiService';
 import { matchSourcesToItinerary } from '../../utils/matchSources';
@@ -23,12 +23,25 @@ const PlanDashboard: React.FC<PlanDashboardProps> = ({ planId, isCreator }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPlan();
-    const unsubscribe = subscribeToPlanMembers(planId, (membersList) => {
+    // Subscribe to plan updates (for aggregated preferences)
+    const unsubscribePlan = subscribeToPlan(planId, (planData) => {
+      if (planData) {
+        setPlan(planData);
+      }
+    });
+
+    // Subscribe to member updates
+    const unsubscribeMembers = subscribeToPlanMembers(planId, (membersList) => {
       setMembers(membersList);
     });
 
-    return () => unsubscribe();
+    // Initial load
+    loadPlan();
+
+    return () => {
+      unsubscribePlan();
+      unsubscribeMembers();
+    };
   }, [planId]);
 
   const loadPlan = async () => {
@@ -49,19 +62,14 @@ const PlanDashboard: React.FC<PlanDashboardProps> = ({ planId, isCreator }) => {
     setError(null);
 
     try {
-      // Aggregate member preferences
-      const allPreferences = members.map((m) => m.preferences);
-      const aggregatedVibe = aggregatePreferences(allPreferences, plan.groupVibe);
-      const aggregatedMustDo = aggregateMustDo(allPreferences, plan.mustDoList);
-      const aggregatedVeto = aggregateVeto(allPreferences, plan.vetoList);
-
-      // Generate itinerary
+      // Use the plan's aggregated data (already stored in plan.groupVibe, plan.mustDoList, plan.vetoList)
+      // These are automatically updated when members join or update preferences
       const result = await generateItinerary(
         plan.destination,
         plan.tripDates,
-        aggregatedVibe,
-        aggregatedMustDo,
-        aggregatedVeto
+        plan.groupVibe,
+        plan.mustDoList,
+        plan.vetoList
       );
 
       if (!result.itineraryJson) {
@@ -84,40 +92,6 @@ const PlanDashboard: React.FC<PlanDashboardProps> = ({ planId, isCreator }) => {
     }
   };
 
-  const aggregatePreferences = (preferences: any[], baseVibe: string): string => {
-    const budgets = preferences.map((p) => p.budget).filter(Boolean);
-    const interests = preferences.flatMap((p) => p.interests || []).filter(Boolean);
-    const dietary = preferences.flatMap((p) => p.dietary || []).filter(Boolean);
-
-    let aggregated = baseVibe;
-    if (budgets.length > 0) {
-      aggregated += ` Budget considerations: ${budgets.join(', ')}.`;
-    }
-    if (interests.length > 0) {
-      aggregated += ` Group interests: ${interests.join(', ')}.`;
-    }
-    if (dietary.length > 0) {
-      aggregated += ` Dietary needs: ${dietary.join(', ')}.`;
-    }
-
-    return aggregated;
-  };
-
-  const aggregateMustDo = (preferences: any[], baseMustDo: string): string => {
-    const memberMustDo = preferences.flatMap((p) => p.mustDo || []).filter(Boolean);
-    if (memberMustDo.length > 0) {
-      return `${baseMustDo} ${memberMustDo.join(', ')}`;
-    }
-    return baseMustDo;
-  };
-
-  const aggregateVeto = (preferences: any[], baseVeto: string): string => {
-    const memberVeto = preferences.flatMap((p) => p.veto || []).filter(Boolean);
-    if (memberVeto.length > 0) {
-      return `${baseVeto} ${memberVeto.join(', ')}`;
-    }
-    return baseVeto;
-  };
 
   const copyInviteCode = () => {
     if (plan?.inviteCode) {
@@ -154,7 +128,7 @@ const PlanDashboard: React.FC<PlanDashboardProps> = ({ planId, isCreator }) => {
       {/* Plan Info */}
       <div className="bg-slate-800 p-6 rounded-xl shadow-lg">
         <h1 className="text-3xl font-bold text-slate-100 mb-4">{plan.destination}</h1>
-        <div className="grid md:grid-cols-2 gap-4 text-slate-300">
+        <div className="grid md:grid-cols-2 gap-4 text-slate-300 mb-4">
           <div>
             <span className="font-semibold">Dates:</span> {plan.tripDates}
           </div>
@@ -162,7 +136,32 @@ const PlanDashboard: React.FC<PlanDashboardProps> = ({ planId, isCreator }) => {
             <span className="font-semibold">Status:</span> {plan.status}
           </div>
         </div>
-        <p className="mt-4 text-slate-300">{plan.groupVibe}</p>
+      </div>
+
+      {/* Aggregated Group Preferences */}
+      <div className="bg-slate-800 p-6 rounded-xl shadow-lg">
+        <h2 className="text-xl font-bold text-slate-100 mb-4">Group Preferences</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-cyan-400 mb-2">Group Vibe</h3>
+            <p className="text-slate-300">{plan.groupVibe || 'No group vibe set yet'}</p>
+          </div>
+
+          {plan.mustDoList && (
+            <div>
+              <h3 className="text-lg font-semibold text-cyan-400 mb-2">Must-Do Items</h3>
+              <p className="text-slate-300">{plan.mustDoList}</p>
+            </div>
+          )}
+
+          {plan.vetoList && (
+            <div>
+              <h3 className="text-lg font-semibold text-cyan-400 mb-2">Veto Items</h3>
+              <p className="text-slate-300">{plan.vetoList}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Invite Section (Creator Only) */}
