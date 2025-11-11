@@ -197,6 +197,26 @@ const PlanDashboard: React.FC<PlanDashboardProps> = ({ planId, isCreator }) => {
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl md:rounded-2xl p-5 md:p-8 shadow-2xl text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 text-5xl md:text-7xl opacity-10">✈️</div>
         <div className="absolute bottom-0 left-0 text-4xl md:text-6xl opacity-10">🌍</div>
+        
+        {/* Invite Code - Top Right Corner (Creator Only) */}
+        {isCreator && (
+          <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1">
+            <span className="text-xs text-blue-100 font-medium">Invite Code</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs md:text-sm font-mono bg-white/20 backdrop-blur-sm px-2 py-1 rounded border border-white/30">
+                {plan.inviteCode}
+              </span>
+              <button
+                onClick={copyInviteCode}
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white text-xs px-2 py-1 rounded transition-all duration-200 hover:scale-105"
+                title="Copy invite code"
+              >
+                📋
+              </button>
+            </div>
+          </div>
+        )}
+        
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-4xl md:text-5xl">🌍</span>
@@ -233,228 +253,197 @@ const PlanDashboard: React.FC<PlanDashboardProps> = ({ planId, isCreator }) => {
         </div>
       </div>
 
-      {/* Aggregated Group Preferences */}
-      <div className="bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-xl border-2 border-purple-100">
-        <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-          <span className="text-2xl md:text-3xl">👥</span>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Group Preferences</h2>
-        </div>
-        
-        <div className="space-y-4 md:space-y-6">
-          {/* Group Vibe - Editable */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 md:p-5 rounded-xl border-l-4 border-blue-400">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base md:text-lg font-semibold text-blue-700 flex items-center gap-2">
-                <span>✨</span> Group Vibe
-              </h3>
-              {!editingGroupVibe ? (
-                <button
-                  onClick={() => setEditingGroupVibe(true)}
-                  className="text-xs md:text-sm text-blue-600 hover:text-blue-700 font-semibold bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-lg transition-colors"
+      {/* Grid Layout for Team Members and Group Preferences */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Team Members - Takes 1 column on mobile, 1/3 width on lg screens */}
+        <div className="bg-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl border-2 border-green-100 lg:col-span-1">
+          <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+            <span className="text-2xl md:text-3xl">👨‍👩‍👧‍👦</span>
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">
+              Team Members ({members.length})
+            </h2>
+          </div>
+          {members.length === 0 ? (
+            <div className="text-center py-6">
+              <div className="text-4xl mb-3">👋</div>
+              <p className="text-sm text-gray-600">No members yet. Share the invite code!</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              {members.map((member) => (
+                <div
+                  key={member.id}
+                  className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200 hover:shadow-lg transition-all duration-200"
                 >
-                  ✏️ Edit
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveGroupVibe}
-                    disabled={saving}
-                    className="text-xs md:text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 px-3 py-1 rounded-lg transition-colors"
-                  >
-                    {saving ? '💾 Saving...' : '💾 Save'}
-                  </button>
-                  <button
-                    onClick={() => handleCancelEdit('groupVibe')}
-                    disabled={saving}
-                    className="text-xs md:text-sm text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 px-3 py-1 rounded-lg transition-colors"
-                  >
-                    ✖️ Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-            {editingGroupVibe ? (
-              <textarea
-                value={editGroupVibe}
-                onChange={(e) => setEditGroupVibe(e.target.value)}
-                className="w-full p-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base text-gray-700 min-h-[100px]"
-                placeholder="Enter group vibe..."
-              />
-            ) : (
-              <p className="text-sm md:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {plan.groupVibe || 'No group vibe set yet'}
-              </p>
-            )}
-          </div>
-
-          {/* Must-Do Items - Editable */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 md:p-5 rounded-xl border-l-4 border-green-400">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base md:text-lg font-semibold text-green-700 flex items-center gap-2">
-                <span>✅</span> Must-Do Items
-              </h3>
-              {!editingMustDo ? (
-                <button
-                  onClick={() => setEditingMustDo(true)}
-                  className="text-xs md:text-sm text-green-600 hover:text-green-700 font-semibold bg-green-100 hover:bg-green-200 px-3 py-1 rounded-lg transition-colors"
-                >
-                  ✏️ Edit
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveMustDo}
-                    disabled={saving}
-                    className="text-xs md:text-sm text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 px-3 py-1 rounded-lg transition-colors"
-                  >
-                    {saving ? '💾 Saving...' : '💾 Save'}
-                  </button>
-                  <button
-                    onClick={() => handleCancelEdit('mustDo')}
-                    disabled={saving}
-                    className="text-xs md:text-sm text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 px-3 py-1 rounded-lg transition-colors"
-                  >
-                    ✖️ Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-            {editingMustDo ? (
-              <textarea
-                value={editMustDo}
-                onChange={(e) => setEditMustDo(e.target.value)}
-                className="w-full p-3 border-2 border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm md:text-base text-gray-700 min-h-[80px]"
-                placeholder="Enter must-do items (comma-separated)..."
-              />
-            ) : (
-              <p className="text-sm md:text-base text-gray-700 whitespace-pre-wrap">
-                {plan.mustDoList || 'No must-do items set yet'}
-              </p>
-            )}
-          </div>
-
-          {/* Veto Items - Editable */}
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 p-4 md:p-5 rounded-xl border-l-4 border-red-400">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base md:text-lg font-semibold text-red-700 flex items-center gap-2">
-                <span>🚫</span> Veto Items
-              </h3>
-              {!editingVeto ? (
-                <button
-                  onClick={() => setEditingVeto(true)}
-                  className="text-xs md:text-sm text-red-600 hover:text-red-700 font-semibold bg-red-100 hover:bg-red-200 px-3 py-1 rounded-lg transition-colors"
-                >
-                  ✏️ Edit
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveVeto}
-                    disabled={saving}
-                    className="text-xs md:text-sm text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 px-3 py-1 rounded-lg transition-colors"
-                  >
-                    {saving ? '💾 Saving...' : '💾 Save'}
-                  </button>
-                  <button
-                    onClick={() => handleCancelEdit('veto')}
-                    disabled={saving}
-                    className="text-xs md:text-sm text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 px-3 py-1 rounded-lg transition-colors"
-                  >
-                    ✖️ Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-            {editingVeto ? (
-              <textarea
-                value={editVeto}
-                onChange={(e) => setEditVeto(e.target.value)}
-                className="w-full p-3 border-2 border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm md:text-base text-gray-700 min-h-[80px]"
-                placeholder="Enter veto items (comma-separated)..."
-              />
-            ) : (
-              <p className="text-sm md:text-base text-gray-700 whitespace-pre-wrap">
-                {plan.vetoList || 'No veto items set yet'}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Invite Section (Creator Only) */}
-      {isCreator && (
-        <div className="bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-xl border-2 border-yellow-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 text-3xl md:text-5xl opacity-10">🎫</div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-              <span className="text-2xl md:text-3xl">📨</span>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-800">Invite Team Members</h2>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Invite Code
-                </label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={plan.inviteCode}
-                    readOnly
-                    className="flex-1 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl py-3 px-4 text-gray-800 font-mono text-lg md:text-xl text-center font-bold shadow-inner"
-                  />
-                  <button
-                    onClick={copyInviteCode}
-                    className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white font-bold py-3 px-4 md:px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 min-h-[44px]"
-                  >
-                    📋 Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Members List */}
-      <div className="bg-white p-4 md:p-8 rounded-xl md:rounded-2xl shadow-xl border-2 border-green-100">
-        <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-          <span className="text-2xl md:text-3xl">👨‍👩‍👧‍👦</span>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-            Team Members ({members.length})
-          </h2>
-        </div>
-        {members.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-4">👋</div>
-            <p className="text-gray-600">No members yet. Share the invite code to get started!</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-4">
-            {members.map((member) => (
-              <div
-                key={member.id}
-                className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-xl border-2 border-green-200 hover:shadow-lg transition-all duration-200"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl">👤</div>
-                    <div>
-                      <div className="font-semibold text-gray-800 text-lg">{member.name}</div>
-                      {member.preferences.budget && (
-                        <div className="text-sm text-gray-600 mt-1">
-                          💰 {member.preferences.budget}
-                        </div>
-                      )}
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <div className="text-2xl">👤</div>
+                      <div>
+                        <div className="font-semibold text-gray-800 text-base">{member.name}</div>
+                        {member.preferences.budget && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            💰 {member.preferences.budget}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(member.joinedAt).toLocaleDateString()}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(member.joinedAt).toLocaleDateString()}
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Group Preferences - Takes full width on mobile, 2/3 width on lg */}
+        <div className="bg-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl border-2 border-purple-100 lg:col-span-2">
+          <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+            <span className="text-2xl md:text-3xl">👥</span>
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">Group Preferences</h2>
           </div>
-        )}
+          
+          <div className="space-y-3 md:space-y-4">
+            {/* Group Vibe - Editable */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 md:p-4 rounded-xl border-l-4 border-blue-400">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm md:text-base font-semibold text-blue-700 flex items-center gap-1.5">
+                  <span>✨</span> Group Vibe
+                </h3>
+                {!editingGroupVibe ? (
+                  <button
+                    onClick={() => setEditingGroupVibe(true)}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-semibold bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    ✏️
+                  </button>
+                ) : (
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={handleSaveGroupVibe}
+                      disabled={saving}
+                      className="text-xs text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 px-2 py-1 rounded-lg transition-colors"
+                    >
+                      {saving ? '💾' : '💾'}
+                    </button>
+                    <button
+                      onClick={() => handleCancelEdit('groupVibe')}
+                      disabled={saving}
+                      className="text-xs text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 px-2 py-1 rounded-lg transition-colors"
+                    >
+                      ✖️
+                    </button>
+                  </div>
+                )}
+              </div>
+              {editingGroupVibe ? (
+                <textarea
+                  value={editGroupVibe}
+                  onChange={(e) => setEditGroupVibe(e.target.value)}
+                  className="w-full p-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm text-gray-700 min-h-[80px]"
+                  placeholder="Enter group vibe..."
+                />
+              ) : (
+                <p className="text-xs md:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3">
+                  {plan.groupVibe || 'No group vibe set yet'}
+                </p>
+              )}
+            </div>
+
+            {/* Must-Do Items - Editable */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 md:p-4 rounded-xl border-l-4 border-green-400">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm md:text-base font-semibold text-green-700 flex items-center gap-1.5">
+                  <span>✅</span> Must-Do
+                </h3>
+                {!editingMustDo ? (
+                  <button
+                    onClick={() => setEditingMustDo(true)}
+                    className="text-xs text-green-600 hover:text-green-700 font-semibold bg-green-100 hover:bg-green-200 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    ✏️
+                  </button>
+                ) : (
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={handleSaveMustDo}
+                      disabled={saving}
+                      className="text-xs text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 px-2 py-1 rounded-lg transition-colors"
+                    >
+                      {saving ? '💾' : '💾'}
+                    </button>
+                    <button
+                      onClick={() => handleCancelEdit('mustDo')}
+                      disabled={saving}
+                      className="text-xs text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 px-2 py-1 rounded-lg transition-colors"
+                    >
+                      ✖️
+                    </button>
+                  </div>
+                )}
+              </div>
+              {editingMustDo ? (
+                <textarea
+                  value={editMustDo}
+                  onChange={(e) => setEditMustDo(e.target.value)}
+                  className="w-full p-2 border-2 border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-xs md:text-sm text-gray-700 min-h-[60px]"
+                  placeholder="Enter must-do items..."
+                />
+              ) : (
+                <p className="text-xs md:text-sm text-gray-700 whitespace-pre-wrap line-clamp-2">
+                  {plan.mustDoList || 'No must-do items set yet'}
+                </p>
+              )}
+            </div>
+
+            {/* Veto Items - Editable */}
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 p-3 md:p-4 rounded-xl border-l-4 border-red-400">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm md:text-base font-semibold text-red-700 flex items-center gap-1.5">
+                  <span>🚫</span> Veto
+                </h3>
+                {!editingVeto ? (
+                  <button
+                    onClick={() => setEditingVeto(true)}
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold bg-red-100 hover:bg-red-200 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    ✏️
+                  </button>
+                ) : (
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={handleSaveVeto}
+                      disabled={saving}
+                      className="text-xs text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 px-2 py-1 rounded-lg transition-colors"
+                    >
+                      {saving ? '💾' : '💾'}
+                    </button>
+                    <button
+                      onClick={() => handleCancelEdit('veto')}
+                      disabled={saving}
+                      className="text-xs text-gray-600 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-300 px-2 py-1 rounded-lg transition-colors"
+                    >
+                      ✖️
+                    </button>
+                  </div>
+                )}
+              </div>
+              {editingVeto ? (
+                <textarea
+                  value={editVeto}
+                  onChange={(e) => setEditVeto(e.target.value)}
+                  className="w-full p-2 border-2 border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-xs md:text-sm text-gray-700 min-h-[60px]"
+                  placeholder="Enter veto items..."
+                />
+              ) : (
+                <p className="text-xs md:text-sm text-gray-700 whitespace-pre-wrap line-clamp-2">
+                  {plan.vetoList || 'No veto items set yet'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Generate Itinerary (Creator Only) */}

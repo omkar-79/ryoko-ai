@@ -1,0 +1,77 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'VITE_FIREBASE_API_KEY=${_VITE_FIREBASE_API_KEY}'
+      - '--build-arg'
+      - 'VITE_FIREBASE_AUTH_DOMAIN=${_VITE_FIREBASE_AUTH_DOMAIN}'
+      - '--build-arg'
+      - 'VITE_FIREBASE_PROJECT_ID=${_VITE_FIREBASE_PROJECT_ID}'
+      - '--build-arg'
+      - 'VITE_FIREBASE_STORAGE_BUCKET=${_VITE_FIREBASE_STORAGE_BUCKET}'
+      - '--build-arg'
+      - 'VITE_FIREBASE_MESSAGING_SENDER_ID=${_VITE_FIREBASE_MESSAGING_SENDER_ID}'
+      - '--build-arg'
+      - 'VITE_FIREBASE_APP_ID=${_VITE_FIREBASE_APP_ID}'
+      - '--build-arg'
+      - 'VITE_GOOGLE_MAPS_API_KEY=${_VITE_GOOGLE_MAPS_API_KEY}'
+      - '--build-arg'
+      - 'GEMINI_API_KEY=${_GEMINI_API_KEY}'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/ryoko-ai-trip-planner:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/ryoko-ai-trip-planner:latest'
+      - '.'
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/ryoko-ai-trip-planner:$BUILD_ID'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/ryoko-ai-trip-planner:latest'
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ryoko-ai-trip-planner'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/ryoko-ai-trip-planner:$BUILD_ID'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+
+  # Grant public access to the service
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'services'
+      - 'add-iam-policy-binding'
+      - 'ryoko-ai-trip-planner'
+      - '--region'
+      - 'us-central1'
+      - '--member'
+      - 'allUsers'
+      - '--role'
+      - 'roles/run.invoker'
+
+images:
+  - 'gcr.io/$PROJECT_ID/ryoko-ai-trip-planner:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/ryoko-ai-trip-planner:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+

@@ -81,8 +81,8 @@ const ExpandableItineraryCard: React.FC<ExpandableItineraryCardProps> = ({ item,
     title: item.activity,
     description: `${item.time} • ${item.location}`,
     src: imageUrl,
-    ctaText: item.googleMapsLink ? "Map" : "View",
-    ctaLink: item.googleMapsLink || "#",
+    ctaText: "View",
+    ctaLink: "#",
     content: () => {
       return (
         <div className="space-y-4">
@@ -96,7 +96,7 @@ const ExpandableItineraryCard: React.FC<ExpandableItineraryCardProps> = ({ item,
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-start gap-3 mb-3">
               <span className="text-xl">📍</span>
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Location</p>
                 <p className="text-gray-700 dark:text-gray-300">{item.location}</p>
                 {item.locationUri && (
@@ -104,9 +104,9 @@ const ExpandableItineraryCard: React.FC<ExpandableItineraryCardProps> = ({ item,
                     href={item.locationUri} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-semibold mt-1 inline-block"
+                    className="mt-2 inline-block px-3 py-1.5 text-sm rounded-full font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors"
                   >
-                    View Area on Maps →
+                    Map
                   </a>
                 )}
               </div>
@@ -126,17 +126,29 @@ const ExpandableItineraryCard: React.FC<ExpandableItineraryCardProps> = ({ item,
                       href={item.hiddenGem.googleMapsLink} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                      className="px-3 py-1.5 text-sm rounded-full font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors"
                     >
-                      Maps
+                      Map
                     </a>
                   )}
                 </div>
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-sm">🗺️</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                    {item.hiddenGem.location}
-                  </p>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {item.hiddenGem.location}
+                    </p>
+                    {item.hiddenGem.locationUri && (
+                      <a 
+                        href={item.hiddenGem.locationUri} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-block px-3 py-1.5 text-sm rounded-full font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                      >
+                        Map
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                   {item.hiddenGem.description}
@@ -207,15 +219,15 @@ const ExpandableItineraryCard: React.FC<ExpandableItineraryCardProps> = ({ item,
                     </motion.p>
                   </div>
 
-                  {cardData.ctaLink !== "#" && (
+                  {item.googleMapsLink && (
                     <motion.a
                       layoutId={`button-${cardData.title}-${id}`}
-                      href={cardData.ctaLink}
+                      href={item.googleMapsLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 py-3 text-sm rounded-full font-bold bg-green-500 text-white hover:bg-green-600 transition-colors"
                     >
-                      {cardData.ctaText}
+                      Map
                     </motion.a>
                   )}
                 </div>
